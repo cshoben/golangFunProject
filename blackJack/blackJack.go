@@ -32,7 +32,7 @@ func cardValue(input string) int{
 	if strings.TrimRight(input, "\n") == "J" {return 10}
 	if strings.TrimRight(input, "\n") == "Q" {return 10}
 	if strings.TrimRight(input, "\n") == "K" {return 10}
-	if strings.TrimRight(input, "\n") == "A" {return 11}
+	if strings.TrimRight(input, "\n") == "A" {return 1}
 	return 99
 }
 
@@ -76,21 +76,39 @@ func checkForBlackJackOrBust(sumOfCards int) string {
 	return ""
 }
 
-func twoCardDraw () [] int [] int {
+func twoCardDraw() ([]int, []int) {
+	var playerCards []int
+	var dealerCards []int
+	var card int
 
+	card = drawRandomCard("player")
+	playerCards = append(playerCards, card)
+	time.Sleep(1 * time.Second)
+	card = drawRandomCard("player")
+	playerCards = append(playerCards, card)
+	time.Sleep(1 * time.Second)
+	card = drawRandomCard("dealer")
+	dealerCards = append(dealerCards, card)
+	time.Sleep(1 * time.Second)
+	card = drawRandomCard("dealer")
+	dealerCards = append(dealerCards, card)
+	time.Sleep(1 * time.Second)
+
+	return playerCards, dealerCards
 }
 
-func playerTurn () int {
+func playerTurn(playerCards []int) []int {
 
 	var status string
 	var newCard, sumOfCards int
 	var hit = true
 	var who = "player"
 	status = checkForBlackJackOrBust(sumOfCards)
-
+	hit = hitOrStay()
 	for status == "continue" && hit == true {
 		newCard = drawRandomCard(who)
-		sumOfCards += newCard
+		playerCards = append(playerCards, newCard)
+		sumOfCards = sumSlice(playerCards)
 		status = checkForBlackJackOrBust(sumOfCards)
 		if status == "blackJack" {
 			log.Fatalln("Black jack, black jack, black jack! You've won")
@@ -100,27 +118,32 @@ func playerTurn () int {
 		}
 		hit = hitOrStay()
 	}
-	return -1
+	return playerCards
 
 }
 
-func  dealersTurn() int{
+func  dealersTurn(dealerCards []int) []int{
 	rand.Seed(time.Now().UnixNano())
 	fmt.Println("Now it's the dealer's turn.")
 	time.Sleep(1 * time.Second)
+	sumOfCards := sumSlice(dealerCards)
+
 	var who = "dealer"
 	var status string
-	var dealerHitOrStay = 1
-	var newCard, sumOfCards int
+	var dealerHitOrStay int
+	var newCard int
 
+	if sumOfCards < 17 {
+		dealerHitOrStay = 1
+	} else {
+		dealerHitOrStay = rand.Int()%sumOfCards
+	}
 
-	newCard = drawRandomCard(who)
-	time.Sleep(1 * time.Second)
-	sumOfCards += newCard
 	for dealerHitOrStay != 0 {
 		newCard = drawRandomCard(who)
+		dealerCards = append(dealerCards, newCard)
 		time.Sleep(1 * time.Second)
-		sumOfCards += newCard
+		sumOfCards = sumSlice(dealerCards)
 		status = checkForBlackJackOrBust(sumOfCards)
 		time.Sleep(1 * time.Second)
 		if status == "blackJack" {
@@ -131,14 +154,22 @@ func  dealersTurn() int{
 		}
 		dealerHitOrStay = rand.Int()%sumOfCards
 	}
-	return -1
+	return dealerCards
 }
+
+func sumSlice (sliceOfValues []int) int {
+	sum := 0
+	for _, value := range sliceOfValues {
+		sum += value
+	}
+	return sum
+}
+
 
 func hitOrStay() bool{
 
-	fmt.Println("Player, would you like a hit or to stay?")
+	fmt.Println("Player, would you like a hit or to stay?\t Enter 'h' for hit and 's' for stay")
 	time.Sleep(1 * time.Second)
-	fmt.Println("Enter 'h' for hit and 's' for stay")
 	reader := bufio.NewReader(os.Stdin)
 	input, err := reader.ReadString('\n')
 
@@ -159,18 +190,42 @@ func hitOrStay() bool{
 }
 
 func main() {
-	var sumOfPlayerCards int
+	var playerCards []int
+	var sumPlayerCards int
+	var dealerCards []int
 	var sumDealerCards int
 
 	welcomeMessage()
 	time.Sleep(1 * time.Second)
+	playerCards, dealerCards = twoCardDraw()
 	fmt.Println("Player, you will go first")
 	time.Sleep(1 * time.Second)
-	sumOfPlayerCards = playerTurn()
-	sumDealerCards = dealersTurn()
-	if sumOfPlayerCards < sumDealerCards {
+	playerTurn(playerCards)
+	time.Sleep(1 * time.Second)
+	fmt.Printf("The dealer's cards are currently %d, %d\n", dealerCards[0], dealerCards[1])
+    dealersTurn(dealerCards)
+
+
+	sumPlayerCards = sumSlice(playerCards)
+	sumDealerCards = sumSlice(dealerCards)
+
+	// check for Aces, adjust accordingly
+	for i := range playerCards {
+		if playerCards[i] == 1 {
+			sumPlayerCards = sumPlayerCards + 10
+		}
+	}
+
+	for i := range dealerCards {
+		if dealerCards[i] == 1 {
+			sumDealerCards = sumDealerCards + 10
+		}
+	}
+
+	// determine who won
+	if sumPlayerCards > sumDealerCards {
 		fmt.Println("You've won!")
-	} else if sumOfPlayerCards == sumDealerCards {
+	} else if sumPlayerCards == sumDealerCards {
 		fmt.Println("It's a tie!")
 	} else {
 		fmt.Println("You lose :(")
