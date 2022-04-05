@@ -31,7 +31,7 @@ func cardValue(input string) int{
 	if strings.TrimRight(input, "\n") == "J" {return 10}
 	if strings.TrimRight(input, "\n") == "Q" {return 10}
 	if strings.TrimRight(input, "\n") == "K" {return 10}
-	if strings.TrimRight(input, "\n") == "A" {return 11}
+	if strings.TrimRight(input, "\n") == "A" {return 1}
 	return 99
 }
 
@@ -77,8 +77,8 @@ func checkForBlackJackOrBust(sumOfCards int) string {
 
 
 
-func playerTurn () int {
-
+func playerTurn() (int, bool) {
+	var ace bool
 	var status string
 	var newCard, sumOfCards int
 	var hit = true
@@ -87,6 +87,9 @@ func playerTurn () int {
 
 	for status == "continue" && hit == true {
 		newCard = drawRandomCard(who)
+		if newCard == 1 {
+			ace = true
+		}
 		sumOfCards += newCard
 		status = checkForBlackJackOrBust(sumOfCards)
 		if status == "blackJack" {
@@ -97,11 +100,12 @@ func playerTurn () int {
 		}
 		hit = hitOrStay()
 	}
-		return -1
+		return sumOfCards, ace
 
 	}
 
-	func  dealersTurn() int{
+	func  dealersTurn() (int, bool){
+		var ace bool
 		rand.Seed(time.Now().UnixNano())
 		fmt.Println("Now it's the dealer's turn.")
 		time.Sleep(1 * time.Second)
@@ -112,10 +116,16 @@ func playerTurn () int {
 
 
 		newCard = drawRandomCard(who)
+		if newCard == 1 {
+			ace = true
+		}
 		time.Sleep(1 * time.Second)
 		sumOfCards += newCard
 		for dealerHitOrStay != 0 {
 			newCard = drawRandomCard(who)
+			if newCard == 1 {
+				ace = true
+			}
 			time.Sleep(1 * time.Second)
 			sumOfCards += newCard
 			status = checkForBlackJackOrBust(sumOfCards)
@@ -128,7 +138,7 @@ func playerTurn () int {
 			}
 			dealerHitOrStay = rand.Int()%sumOfCards
 		}
-		return -1
+		return sumOfCards, ace
 	}
 
 	func hitOrStay() bool{
@@ -156,18 +166,32 @@ func playerTurn () int {
 	}
 
 	func main() {
-		var sumOfPlayerCards int
+		var sumPlayerCards int
 		var sumDealerCards int
+		var acePlayer bool
+		var aceDealer bool
 
 		welcomeMessage()
 		time.Sleep(1 * time.Second)
 		fmt.Println("Player, you will go first")
 		time.Sleep(1 * time.Second)
-		sumOfPlayerCards = playerTurn()
-		sumDealerCards = dealersTurn()
-		if sumOfPlayerCards < sumDealerCards {
+		sumPlayerCards, acePlayer = playerTurn()
+		sumDealerCards, aceDealer = dealersTurn()
+
+		// check for Aces, adjust accordingly
+		if acePlayer == true && sumPlayerCards < 12 {
+			sumPlayerCards = sumPlayerCards + 10
+			if sumPlayerCards == 21 {
+				log.Fatalf("Black jack, black jack, black jack! You've won")
+			}
+		}
+		if aceDealer == true && sumDealerCards < 12 {
+			sumDealerCards = sumDealerCards + 10
+		}
+
+		if sumPlayerCards > sumDealerCards {
 			fmt.Println("You've won!")
-		} else if sumOfPlayerCards == sumDealerCards {
+		} else if sumPlayerCards == sumDealerCards {
 			fmt.Println("It's a tie!")
 		} else {
 			fmt.Println("You lose :(")
