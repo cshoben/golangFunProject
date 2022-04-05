@@ -76,7 +76,9 @@ func checkForBlackJackOrBust(sumOfCards int) string {
 	return ""
 }
 
+func twoCardDraw () [] int [] int {
 
+}
 
 func playerTurn () int {
 
