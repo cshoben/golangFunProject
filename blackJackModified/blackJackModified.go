@@ -15,7 +15,7 @@ func welcomeMessage () {
 }
 
 // 	This is a variation of Black Jack, where the player is dealt all their cards, and
-// 	then the dealer is dealt theirs. The dealers "choice" to hit or stay is based on a random number generator. 
+// 	then the dealer is dealt theirs. The dealers "choice" to hit or stay is based on a random number generator.
 
 func cardValue(input string) int{
 	if strings.TrimRight(input, "\n") == "0" {return 0}
@@ -31,7 +31,7 @@ func cardValue(input string) int{
 	if strings.TrimRight(input, "\n") == "J" {return 10}
 	if strings.TrimRight(input, "\n") == "Q" {return 10}
 	if strings.TrimRight(input, "\n") == "K" {return 10}
-	if strings.TrimRight(input, "\n") == "A" {return 11}
+	if strings.TrimRight(input, "\n") == "A" {return 1}
 	return 99
 }
 
@@ -77,8 +77,8 @@ func checkForBlackJackOrBust(sumOfCards int) string {
 
 
 
-func playerTurn () int {
-
+func playerTurn() (int, bool) {
+	var ace bool
 	var status string
 	var newCard, sumOfCards int
 	var hit = true
@@ -87,6 +87,9 @@ func playerTurn () int {
 
 	for status == "continue" && hit == true {
 		newCard = drawRandomCard(who)
+		if newCard == 1 {
+			ace = true
+		}
 		sumOfCards += newCard
 		status = checkForBlackJackOrBust(sumOfCards)
 		if status == "blackJack" {
@@ -97,11 +100,12 @@ func playerTurn () int {
 		}
 		hit = hitOrStay()
 	}
-		return -1
+		return sumOfCards, ace
 
 	}
 
-	func  dealersTurn() int{
+	func  dealersTurn() (int, bool){
+		var ace bool
 		rand.Seed(time.Now().UnixNano())
 		fmt.Println("Now it's the dealer's turn.")
 		time.Sleep(1 * time.Second)
@@ -112,10 +116,16 @@ func playerTurn () int {
 
 
 		newCard = drawRandomCard(who)
+		if newCard == 1 {
+			ace = true
+		}
 		time.Sleep(1 * time.Second)
 		sumOfCards += newCard
 		for dealerHitOrStay != 0 {
 			newCard = drawRandomCard(who)
+			if newCard == 1 {
+				ace = true
+			}
 			time.Sleep(1 * time.Second)
 			sumOfCards += newCard
 			status = checkForBlackJackOrBust(sumOfCards)
@@ -128,7 +138,7 @@ func playerTurn () int {
 			}
 			dealerHitOrStay = rand.Int()%sumOfCards
 		}
-		return -1
+		return sumOfCards, ace
 	}
 
 	func hitOrStay() bool{
@@ -156,51 +166,35 @@ func playerTurn () int {
 	}
 
 	func main() {
-		var sumOfPlayerCards int
+		var sumPlayerCards int
 		var sumDealerCards int
+		var acePlayer bool
+		var aceDealer bool
 
 		welcomeMessage()
 		time.Sleep(1 * time.Second)
 		fmt.Println("Player, you will go first")
 		time.Sleep(1 * time.Second)
-		sumOfPlayerCards = playerTurn()
-		sumDealerCards = dealersTurn()
-		if sumOfPlayerCards < sumDealerCards {
+		sumPlayerCards, acePlayer = playerTurn()
+		sumDealerCards, aceDealer = dealersTurn()
+
+		// check for Aces, adjust accordingly
+		if acePlayer == true && sumPlayerCards < 12 {
+			sumPlayerCards = sumPlayerCards + 10
+			if sumPlayerCards == 21 {
+				log.Fatalf("Black jack, black jack, black jack! You've won")
+			}
+		}
+		if aceDealer == true && sumDealerCards < 12 {
+			sumDealerCards = sumDealerCards + 10
+		}
+
+		if sumPlayerCards > sumDealerCards {
 			fmt.Println("You've won!")
-		} else if sumOfPlayerCards == sumDealerCards {
+		} else if sumPlayerCards == sumDealerCards {
 			fmt.Println("It's a tie!")
 		} else {
 			fmt.Println("You lose :(")
 		}
 	}
-
-
-
-//Goal: write a program so a player can play black jack via the terminal.
-
-/*
-Rules of black jack
-The player and the dealer receive two cards from a shuffled deck.
-In our case, we'll use a single deck, though casinos usually use a
-'shoe' consisting of six decks.
-
-After the first two cards are dealt to dealer and player, the player
-is asked if they'd like another card (called 'hitting'), or if they
-are happy with the cards they have already (called 'staying'). The
-object is to make the sum of your card values as close to 21, without
-going over. If we make 21 exactly, we have blackjack, which can't be beat.
-If we go over 21, we 'bust' and we lose the round. The player is allowed to
-stop hitting at any point.
-
-The number cards (2 through 10) are worth the number displayed, face
-cards are worth 10, and an Ace can be worth either 1 or 11. For example,
-if our first two cards are a Jack and an Ace, we'd want to count the Ace
-as 11 since 10 + 11 = 21, and we'd have blackjack, but, if we had
-already had a hand worth 18, decided to hit, and got an Ace, we'd
-want to count it as 1, since counting it as 11 would put us at 29, and we'd bust.
-
-Once our hand is finished, the dealer tries to do the same. The dealer must
-keep hitting until they get to 17. If they get above 17 without busting, they can stay.
-
-*/
 
